@@ -1,20 +1,26 @@
+# src/config.py
+
 import os
+import sys  # <--- ADICIONE ESTA LINHA
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Caminhos do Projeto
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-CHROMA_DB_PATH = os.path.join(PROJECT_ROOT, "chroma_db")
-HOT_FOLDER_PATH = os.path.join(PROJECT_ROOT, "hot_folder_for_rag")
-TEMPLATES_PATH = os.path.join(PROJECT_ROOT, "templates")
-OUTPUT_PROPOSALS_PATH = os.path.join(PROJECT_ROOT, "output_proposals")
+# --- Caminhos Essenciais do Projeto ---
+# Define o diretório raiz do projeto, funcionando tanto como script quanto como .exe
+if getattr(sys, 'frozen', False):
+    PROJECT_ROOT = os.path.dirname(sys.executable)
+else:
+    PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-# Modelos da OpenAI
-EMBEDDING_MODEL = "text-embedding-3-small"
+# Caminho para a pasta de templates
+TEMPLATES_PATH = os.path.join(PROJECT_ROOT, "templates")
+
+# --- Modelos da OpenAI ---
+# Mantemos o modelo de LLM, pois ainda é usado para a análise
 LLM_MODEL = "gpt-4o"
 
-# Chave de API
+# --- Chave de API ---
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:

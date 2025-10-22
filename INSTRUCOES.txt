@@ -1,50 +1,49 @@
 =====================================================
- Guia de Instalação e Uso Final - Magic Meet Copilot Pro
+ Guia de Uso - Business Analyst Copilot
 =====================================================
 
-Bem-vindo! Para usar o Magic Meet Copilot Pro, a configuração é muito simples. [cite: 7]
+Bem-vindo! Este guia mostra como usar o Business Analyst Copilot para transformar reuniões em documentação de projeto.
+
 ---------------------------------------------------------------------
 PASSO 1: REQUISITOS (FEITO SÓ UMA VEZ)
 ---------------------------------------------------------------------
 
-1.  **Instalar Python:** Você precisa ter o Python 3.11 instalado.
-    * Baixe aqui: https://www.python.org/downloads/release/python-3119/ [cite: 9]
-    * **IMPORTANTE:** Durante a instalação, marque a caixa "Add python.exe to PATH". [cite: 9]
+1.  **Instalar Python:** É necessário ter o Python instalado (versão 3.8 ou superior).
+    * Baixe aqui: https://www.python.org/downloads/
+    * **IMPORTANTE:** Durante a instalação, marque a caixa "Add python.exe to PATH".
 
 2.  **Configurar Microfone:**
-    * Certifique-se de que seu microfone está conectado. [cite: 10]
-    * Nas "Configurações de Som" do Windows, na seção "Entrada", defina seu microfone como o dispositivo padrão. [cite: 11]
-
-3.  **Alimentar a IA (Opcional, mas Recomendado):**
-    * Para que a geração de propostas seja inteligente, a IA precisa aprender com seus trabalhos anteriores.
-    * Simplesmente copie e cole seus arquivos de propostas antigas (.pdf, .txt) para dentro da pasta `hot_folder_for_rag`.
-    * Na primeira vez, peça a um responsável técnico para fazer a "Carga Inicial", que processa todos os arquivos de uma vez.
+    * Certifique-se de que seu microfone está conectado e funcionando.
+    * Defina-o como o dispositivo de entrada padrão nas "Configurações de Som" do seu sistema operacional.
 
 ---------------------------------------------------------------------
-PASSO 2: EXECUTANDO O MAGIC MEET COPILOT PRO
+PASSO 2: EXECUTANDO O COPILOT
 ---------------------------------------------------------------------
 
-1.  Descompacte o arquivo .zip em uma pasta no seu computador.
-2.  Dê um **duplo clique no arquivo `run.bat`**. [cite: 13]
+1.  Descompacte o arquivo .zip em uma pasta de fácil acesso.
+2.  Dê um **duplo clique no arquivo `run.bat`**.
 
-    * Na primeira vez, uma janela preta vai aparecer e instalar tudo (pode levar alguns minutos). Aguarde. [cite: 14]
-    * Quando terminar, o programa irá iniciar. Nas vezes seguintes, será muito mais rápido. [cite: 15]
+    * Na primeira execução, uma janela preta irá instalar as dependências. Aguarde, pode levar alguns minutos.
+    * Quando terminar, o programa iniciará. Nas vezes seguintes, será bem mais rápido.
 
 ---------------------------------------------------------------------
 PASSO 3: COMO USAR A FERRAMENTA
 ---------------------------------------------------------------------
 
-1.  **Preencha os Dados:** Antes ou durante a reunião, preencha o nome do cliente, cores e adicione documentos de apoio (editais, briefings, etc.) clicando em "Adicionar".
+1.  **Preencha os Dados:** Antes ou durante a reunião, preencha o **Nome do Cliente** e adicione quaisquer **Documentos de Apoio** (editais, briefings, áudios, etc.) clicando em "Adicionar Docs".
 
-2.  **Inicie a Transcrição:** Clique em "Iniciar Transcrição". Lembre-se de usar a **"Técnica do Espelho"**: ouça o cliente e repita/resuma os pontos importantes em voz alta para que a IA capture. [cite: 17]
+2.  **Inicie a Transcrição:** Clique em **"▶️ Iniciar Transcrição"**. Para garantir que a IA capture os pontos mais importantes, use a **"Técnica do Espelho"**: ouça o cliente e repita/resuma os pontos-chave em voz alta.
 
-3.  **Gere a Análise (Ação Principal):** Ao parar a transcrição, clique em **"1. Gerar Análise da Reunião"**. A IA irá ler tudo e preencher a aba "Pré-Análise".
+3.  **Gere os Artefatos (Ação Principal):** Quando a reunião terminar, pare a transcrição e clique no botão **"🚀 Gerar Análise e Artefatos"**. A IA irá processar a transcrição e os documentos.
 
-4.  **Refine e Crie os Artefatos:**
-    * Vá para a aba "Pré-Análise" e **edite o texto** para garantir que está perfeito.
-    * Com a análise pronta, você pode clicar em **"2. Gerar Protótipo (RPA)"** se a reunião exigir um protótipo visual.
-    * Para criar a proposta, clique em **"3. Gerar Pré-Proposta (RAG)"**. A IA usará sua análise refinada e a base de conhecimento para criar o documento.
-
-5.  **Salve Tudo:** Use os botões de "Salvar" dentro de cada aba para exportar seus documentos.
+4.  **Explore e Refine os Resultados:**
+    * **Mapa Mental:**
+        * Vá para a aba **"Mapa Mental"**.
+        * À esquerda, você pode **editar o texto** em formato Markdown para refinar o mapa. As alterações aparecerão em tempo real no visualizador à direita.
+        * Use o botão **"Salvar HTML"** para exportar uma versão interativa do mapa.
+    * **Especificação Funcional:**
+        * Vá para a aba **"Especificação Funcional"**.
+        * Revise o documento gerado pela IA.
+        * Use o botão **"Salvar Especificação (.txt)"** para guardar o arquivo.
 
 =====================================================

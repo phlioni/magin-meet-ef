@@ -1,12 +1,12 @@
 @echo off
-title Magic Meet Copilot - Builder
+title Business Analyst Copilot - Builder
 
 :: --- ETAPA DE SEGURANCA ---
-:: Forca o encerramento de qualquer instancia anterior do programa que possa estar presa.
-echo Encerrando qualquer processo antigo do MagicMeetCopilotPro...
-taskkill /F /IM "MagicMeetCopilotPro.exe" /T >nul 2>&1
+:: Forca o encerramento de qualquer instancia anterior do programa.
+echo Encerrando qualquer processo antigo do BusinessAnalystCopilot...
+taskkill /F /IM "BusinessAnalystCopilot.exe" /T >nul 2>&1
 
-:: Pausa rapida para garantir que os arquivos foram liberados pelo sistema operacional.
+:: Pausa para garantir que os arquivos foram liberados.
 timeout /t 2 /nobreak >nul
 
 echo.
@@ -17,24 +17,21 @@ rmdir /s /q dist
 echo.
 echo Iniciando o processo de build com PyInstaller...
 echo Este processo pode levar varios minutos.
-:: Comando final com todas as correcoes (ChromaDB e Tiktoken)
+
+:: Comando final com o novo nome e dependências limpas
 .\venv\Scripts\pyinstaller.exe --noconfirm --log-level=INFO ^
-    --name="MagicMeetCopilotPro" ^
+    --name="BusinessAnalystCopilot" ^
     --windowed ^
     --add-data="%~dp0src;src" ^
     --add-data="%~dp0templates;templates" ^
     --add-data="%~dp0.env;." ^
     --add-data="%~dp0google_credentials.json;." ^
-    --add-data=".\venv\Lib\site-packages\tiktoken;tiktoken" ^
-    --add-data="%~dp0chroma_db;chroma_db" ^
-    --hidden-import="chromadb.telemetry.product.posthog" ^
-    --hidden-import="chromadb.api.rust" ^
     main.py
 
 echo.
 echo --------------------------------------------------------------------
 echo  Build concluido com sucesso!
-echo  A aplicacao esta na pasta: 'dist\MagicMeetCopilotPro'
+echo  A aplicacao esta na pasta: 'dist\BusinessAnalystCopilot'
 echo --------------------------------------------------------------------
 echo.
 pause
