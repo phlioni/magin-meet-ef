@@ -1,0 +1,62 @@
+======================================================================
+                  PROPOSTA TÉCNICA E COMERCIAL
+======================================================================
+
+CLIENTE: [A IA irá preencher o nome do cliente]
+PROJETO: [A IA irá criar um título claro para a proposta]
+DATA: [A IA irá preencher com a data atual]
+
+----------------------------------------------------------------------
+1. OBJETIVO DO PROJETO
+----------------------------------------------------------------------
+[A IA irá descrever o principal objetivo do projeto.]
+
+----------------------------------------------------------------------
+2. FUNCIONALIDADES DA SOLUÇÃO COMPLETA
+----------------------------------------------------------------------
+[A IA irá definir e listar TODOS os MÓDULOS FUNCIONAIS e as FUNCIONALIDADES de usuário para a solução completa.]
+
+----------------------------------------------------------------------
+3. ESTRUTURA DE ESFORÇO E CRONOGRAMA (PROJETO COMPLETO)
+----------------------------------------------------------------------
+A estimativa de esforço para o projeto completo foi calculada com base na análise de complexidade de cada módulo, comparada ao nosso portfólio de projetos similares.
+
+**3.1. Matriz de Estimativa de Esforço (Horas):**
+
+[A IA irá criar e inserir aqui a MATRIZ DE HORAS (Módulos vs. Fases) para o projeto completo.]
+
+**3.2. Cronograma de Execução:**
+
+[A IA irá criar um CRONOGRAMA VISUAL (em semanas ou meses) para o projeto completo.]
+
+----------------------------------------------------------------------
+4. EQUIPE RECOMENDADA
+----------------------------------------------------------------------
+[A IA irá sugerir a composição da equipe ideal para o projeto completo.]
+
+----------------------------------------------------------------------
+5. PREMISSAS E RESTRIÇÕES
+----------------------------------------------------------------------
+**Premissas:**
+- [A IA irá listar as premissas do projeto.]
+
+**Restrições (Fora do Escopo):**
+- [A IA irá listar o que não está incluído no escopo.]
+
+----------------------------------------------------------------------
+6. SUGESTÃO DE MVP (MÍNIMO PRODUTO VIÁVEL)
+----------------------------------------------------------------------
+
+Para gerar valor rapidamente e mitigar riscos, propomos uma entrega inicial focada no maior impacto de negócio.
+
+**Módulo(s) / Funcionalidade(s) do MVP:**
+- [A IA irá selecionar e listar aqui as funcionalidades mais críticas que compõem o MVP.]
+
+**Justificativa de Valor (Efeito UAU):**
+- [A IA irá explicar por que este MVP é Usável, Viável e gera um alto valor percebido, causando um impacto positivo imediato no negócio do cliente.]
+
+**Estimativa de Esforço e Tempo para o MVP:**
+- [A IA irá calcular e apresentar as horas e o cronograma (em semanas) especificamente para a entrega do MVP.]
+
+**Evolução Pós-MVP:**
+- [A IA irá descrever brevemente como os demais módulos seriam entregues em fases futuras após o sucesso do MVP.]

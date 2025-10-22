@@ -1,0 +1,50 @@
+=====================================================
+ Guia de Instalação e Uso Final - Magic Meet Copilot Pro
+=====================================================
+
+Bem-vindo! Para usar o Magic Meet Copilot Pro, a configuração é muito simples. [cite: 7]
+---------------------------------------------------------------------
+PASSO 1: REQUISITOS (FEITO SÓ UMA VEZ)
+---------------------------------------------------------------------
+
+1.  **Instalar Python:** Você precisa ter o Python 3.11 instalado.
+    * Baixe aqui: https://www.python.org/downloads/release/python-3119/ [cite: 9]
+    * **IMPORTANTE:** Durante a instalação, marque a caixa "Add python.exe to PATH". [cite: 9]
+
+2.  **Configurar Microfone:**
+    * Certifique-se de que seu microfone está conectado. [cite: 10]
+    * Nas "Configurações de Som" do Windows, na seção "Entrada", defina seu microfone como o dispositivo padrão. [cite: 11]
+
+3.  **Alimentar a IA (Opcional, mas Recomendado):**
+    * Para que a geração de propostas seja inteligente, a IA precisa aprender com seus trabalhos anteriores.
+    * Simplesmente copie e cole seus arquivos de propostas antigas (.pdf, .txt) para dentro da pasta `hot_folder_for_rag`.
+    * Na primeira vez, peça a um responsável técnico para fazer a "Carga Inicial", que processa todos os arquivos de uma vez.
+
+---------------------------------------------------------------------
+PASSO 2: EXECUTANDO O MAGIC MEET COPILOT PRO
+---------------------------------------------------------------------
+
+1.  Descompacte o arquivo .zip em uma pasta no seu computador.
+2.  Dê um **duplo clique no arquivo `run.bat`**. [cite: 13]
+
+    * Na primeira vez, uma janela preta vai aparecer e instalar tudo (pode levar alguns minutos). Aguarde. [cite: 14]
+    * Quando terminar, o programa irá iniciar. Nas vezes seguintes, será muito mais rápido. [cite: 15]
+
+---------------------------------------------------------------------
+PASSO 3: COMO USAR A FERRAMENTA
+---------------------------------------------------------------------
+
+1.  **Preencha os Dados:** Antes ou durante a reunião, preencha o nome do cliente, cores e adicione documentos de apoio (editais, briefings, etc.) clicando em "Adicionar".
+
+2.  **Inicie a Transcrição:** Clique em "Iniciar Transcrição". Lembre-se de usar a **"Técnica do Espelho"**: ouça o cliente e repita/resuma os pontos importantes em voz alta para que a IA capture. [cite: 17]
+
+3.  **Gere a Análise (Ação Principal):** Ao parar a transcrição, clique em **"1. Gerar Análise da Reunião"**. A IA irá ler tudo e preencher a aba "Pré-Análise".
+
+4.  **Refine e Crie os Artefatos:**
+    * Vá para a aba "Pré-Análise" e **edite o texto** para garantir que está perfeito.
+    * Com a análise pronta, você pode clicar em **"2. Gerar Protótipo (RPA)"** se a reunião exigir um protótipo visual.
+    * Para criar a proposta, clique em **"3. Gerar Pré-Proposta (RAG)"**. A IA usará sua análise refinada e a base de conhecimento para criar o documento.
+
+5.  **Salve Tudo:** Use os botões de "Salvar" dentro de cada aba para exportar seus documentos.
+
+=====================================================

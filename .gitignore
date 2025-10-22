@@ -1,0 +1,12 @@
+# Ambiente Virtual
+.venv/
+venv/
+dist/
+
+# Arquivos de Cache Python
+__pycache__/
+*.pyc
+
+# Arquivos de Configuração Secretos
+.env
+google_credentials.json
