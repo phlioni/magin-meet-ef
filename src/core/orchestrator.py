@@ -49,9 +49,8 @@ def run_analysis_and_generate_artifacts(transcription: str, info_cliente: dict, 
     return bpmn_xml, spec_content
 
 
-# --- GERADOR DE DOCUMENTO .TXT (sem alterações) ---
+# --- GERADOR DE DOCUMENTO .TXT (ATUALIZADO) ---
 def generate_specification_document(spec_content: dict, client_name: str) -> str:
-    # (Esta função para gerar o .txt permanece a mesma)
     try:
         template_path = os.path.join(TEMPLATES_PATH, "functional_specification_template.txt")
         if not os.path.exists(template_path):
@@ -92,8 +91,11 @@ def generate_specification_document(spec_content: dict, client_name: str) -> str
                 functionalities_text += f"Requisitos Funcionais:\n"
                 rf_list = func.get('functional_requirements', [])
                 if rf_list:
+                    # Formata a lista de requisitos funcionais
                     for req in rf_list:
                         functionalities_text += f"- {req}\n"
+                else:
+                    functionalities_text += "- Nenhum requisito funcional detalhado.\n"
                 functionalities_text += "\n\n"
         template = template.replace("{functionalities_section}", functionalities_text or "Nenhuma funcionalidade detalhada foi gerada.")
         return template
@@ -101,7 +103,7 @@ def generate_specification_document(spec_content: dict, client_name: str) -> str
         return f"Erro ao gerar o documento de especificação: {e}"
 
 
-# --- NOVA FUNÇÃO: GERADOR DE DOCUMENTO .DOCX ---
+# --- NOVA FUNÇÃO: GERADOR DE DOCUMENTO .DOCX (VERSÃO CORRIGIDA) ---
 def generate_word_document(spec_content: dict):
     """
     Preenche um template do Word (.docx) com o conteúdo gerado pela IA.
@@ -113,7 +115,7 @@ def generate_word_document(spec_content: dict):
         
         doc = Document(template_path)
         
-        # Dicionário de placeholders simples para substituição
+        # Dicionário de placeholders para substituição
         replacements = {
             '[DESCRIÇÃO DO OBJETIVO DO DOCUMENTO]': str(spec_content.get("document_objective", "")),
             '[DESCRIÇÃO DA HISTÓRIA DO USUÁRIO]': str(spec_content.get("user_stories", "")),
@@ -127,65 +129,72 @@ def generate_word_document(spec_content: dict):
             '00/00/0000': datetime.now().strftime("%d/%m/%Y"),
         }
 
-        # Substitui placeholders em parágrafos e tabelas
+        # Substitui placeholders no corpo do documento
         for p in doc.paragraphs:
             for key, value in replacements.items():
                 if key in p.text:
-                    # Substitui mantendo o estilo
-                    inline = p.runs
-                    for i in range(len(inline)):
-                        if key in inline[i].text:
-                            text = inline[i].text.replace(key, value)
-                            inline[i].text = text
-                            
+                     # Usar replace diretamente no texto do parágrafo é mais simples, 
+                     # mas pode ter implicações de estilo. Para este caso, deve funcionar.
+                    p.text = p.text.replace(key, value)
+
+        # Substitui placeholders nas tabelas
         for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for p in cell.paragraphs:
                         for key, value in replacements.items():
-                             if key in p.text:
-                                inline = p.runs
-                                for i in range(len(inline)):
-                                    if key in inline[i].text:
-                                        text = inline[i].text.replace(key, value)
-                                        inline[i].text = text
+                            if key in p.text:
+                                p.text = p.text.replace(key, value)
 
         # Adiciona a seção de funcionalidades dinamicamente
         functionalities_list = spec_content.get('functionalities', [])
         if functionalities_list:
-            # Encontra o parágrafo que serve de âncora para inserir as funcionalidades
             anchor_paragraph = None
             for p in doc.paragraphs:
                 if '[TEXTO BREVE COM DESCRIÇÃO DA FUNCIONALIDADE]' in p.text:
                     anchor_paragraph = p
-                    p.text = "" # Limpa o placeholder
+                    p.text = "" # Limpa o texto do placeholder
                     break
             
             if anchor_paragraph:
+                # Verifica se o estilo de lista existe no documento
+                has_list_bullet_style = False
+                styles = doc.styles
+                for s in styles:
+                    if s.name == 'List Bullet':
+                        has_list_bullet_style = True
+                        break
+                
                 for i, func in enumerate(functionalities_list):
-                    # Usa o estilo 'Heading 2' do Word para o título
+                    # Adiciona o título da funcionalidade
                     anchor_paragraph.insert_paragraph_before(f"6.{i+1} {func.get('title', 'Funcionalidade sem título')}", style='Heading 2')
-                    # Adiciona os detalhes como parágrafos normais
+                    
+                    # Adiciona os detalhes
                     anchor_paragraph.insert_paragraph_before(f"Descrição: {func.get('description', 'N/A')}")
                     anchor_paragraph.insert_paragraph_before(f"Acionador: {func.get('trigger', 'N/A')}")
                     anchor_paragraph.insert_paragraph_before(f"Integrações: {func.get('integrations', 'N/A')}")
                     anchor_paragraph.insert_paragraph_before(f"Vínculo com Telas: {func.get('screen_links', 'N/A')}")
                     anchor_paragraph.insert_paragraph_before(f"Campos: {func.get('fields', 'N/A')}")
                     
+                    # Adiciona os Requisitos Funcionais
                     rf_list = func.get('functional_requirements', [])
                     if rf_list:
                         anchor_paragraph.insert_paragraph_before("Requisitos Funcionais:")
                         for req in rf_list:
-                            # Usa o estilo de lista com bolinha
-                            anchor_paragraph.insert_paragraph_before(req, style='List Bullet')
+                            # LÓGICA DE CORREÇÃO:
+                            # Se o estilo 'List Bullet' existir, usa. Senão, adiciona um hífen manualmente.
+                            if has_list_bullet_style:
+                                anchor_paragraph.insert_paragraph_before(req, style='List Bullet')
+                            else:
+                                anchor_paragraph.insert_paragraph_before(f"- {req}")
                     
-                    anchor_paragraph.insert_paragraph_before("") # Adiciona um espaço
+                    # Adiciona um parágrafo em branco para espaçamento
+                    anchor_paragraph.insert_paragraph_before("") 
 
         return doc
 
     except Exception as e:
         print(f"Erro ao gerar documento Word: {e}")
-        # Retorna um documento em branco com a mensagem de erro em caso de falha
         doc = Document()
         doc.add_paragraph(f"Ocorreu um erro ao gerar o documento Word: {e}")
         return doc

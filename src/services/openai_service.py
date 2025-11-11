@@ -24,45 +24,60 @@ def generate_business_analysis(api_key: str, full_transcription: str, client_inf
     openai.api_key = api_key
 
     prompt_master = f"""
-    Você é um Analista de Processos de Negócio Sênior e Engenheiro de Requisitos, especialista em BPMN 2.0.
-    Sua tarefa é analisar a transcrição de uma reunião e gerar um objeto JSON com duas chaves: "bpmn_xml" e "specification_content". AMBAS AS CHAVES SÃO IGUALMENTE IMPORTANTES E DEVEM SER COMPLETAMENTE PREENCHIDAS.
+    **PERSONA:**
+    Você é um Analista de Negócios e Engenheiro de Requisitos Sênior, com mais de 15 anos de experiência em projetos complexos de software. Sua especialidade é traduzir conversas de negócio em documentação técnica impecável (BPMN 2.0 e Especificações Funcionais). Você é extremamente analítico, crítico e tem um olhar apurado para identificar processos, regras de negócio, exceções e requisitos implícitos que não foram ditos claramente na reunião. Seu trabalho é a principal fonte de verdade para as equipes de desenvolvimento e produto.
 
-    **--- TRANSCRIÇÃO E DOCUMENTOS PARA ANÁLISE ---**
-    Cliente: '{client_info.get('nome', 'N/A')}'
-    Contexto Adicional: {context_docs}
-    Transcrição da Reunião: {full_transcription}
-    **--- FIM DA ANÁLISE ---**
+    **TAREFA CRÍTICA:**
+    Analise a transcrição da reunião e os documentos de contexto abaixo. Sua missão é extrair CADA detalhe relevante e gerar um objeto JSON contendo duas chaves principais: "bpmn_xml" e "specification_content". A qualidade e o detalhamento de ambas as chaves são cruciais para o sucesso do projeto. Falhar em detalhar qualquer uma delas é inaceitável.
 
-    Agora, gere o objeto JSON com base na análise acima, seguindo as regras abaixo:
+    **--- DADOS BRUTOS PARA ANÁLISE ---**
+    - **Cliente:** '{client_info.get('nome', 'Não informado')}'
+    - **Contexto Adicional (documentos, etc.):** {context_docs}
+    - **Transcrição da Reunião:** {full_transcription}
+    **--- FIM DOS DADOS BRUTOS ---**
 
-    1.  **"bpmn_xml" (string):**
-        * Crie um diagrama de processo de negócio em formato XML padrão BPMN 2.0. O XML deve ser completo, sintaticamente correto e válido.
-        * **Lógica do Processo:** Modele o fluxo completo com StartEvent, Tasks (userTask, serviceTask), Gateways para decisões e EndEvents.
-        * **Conexões:** Use 'sequenceFlow' para conectar TODOS os elementos sequencialmente.
-        * **Layout Visual:** É OBRIGATÓRIO gerar a seção '<bpmndi:BPMNDiagram>' completa, com um '<bpmndi:BPMNPlane>', e incluir um '<bpmndi:BPMNShape>' (com coordenadas em '<dc:Bounds>') para cada tarefa/evento, e um '<bpmndi:BPMNEdge>' (com '<di:waypoint>') para cada conexão.
-        * **Lanes:** Use '<bpmn:laneSet>' para agrupar tarefas por responsável (ex: Sistema, Financeiro).
+    **REGRAS E DIRETRIZES PARA A GERAÇÃO DO JSON:**
 
-    2.  **"specification_content" (objeto JSON):**
-        * Preencha TODAS as chaves a seguir com base na transcrição. NÃO deixe nenhum campo com placeholder.
-        * **"system_name"**: (string) O nome do sistema ou projeto.
-        * **"document_name"**: (string) Um título para o documento.
-        * **"importance"**: (string) A importância do projeto.
-        * **"project_code"**: (string) Use "A DEFINIR" se não mencionado.
-        * **"document_objective"**: (string) O objetivo do processo.
-        * **"user_stories"**: (string) Uma string com MÚLTIPLAS LINHAS no formato "Como um [ator], eu quero [ação] para que [resultado].".
-        * **"user_flow"**: (string) A jornada do usuário em um parágrafo.
-        * **"user_profiles"**: (string) Os perfis/sistemas envolvidos.
-        * **"prototype_link"**: (string) Use "N/A".
-        * **"functionalities"**: (array de objetos) Detalhe CADA funcionalidade discutida.
+    **1. CHAVE: "bpmn_xml" (Formato: string XML)**
+       - **Qualidade do Modelo:** Crie um diagrama BPMN 2.0 em XML que seja completo, válido e represente fielmente o processo de negócio discutido. O modelo deve ser lógico e detalhado.
+       - **Elementos Obrigatórios:**
+         - **Eventos:** Use `startEvent`, `endEvent` e, se necessário, `intermediateCatchEvent` (ex: para esperas).
+         - **Tarefas:** Detalhe as tarefas usando `userTask` (ação de um usuário), `serviceTask` (processo automático do sistema) e `manualTask` (tarefa fora do sistema). Nomeie cada tarefa de forma clara e inequívoca (ex: "Sistema valida disponibilidade de estoque" em vez de "Verifica estoque").
+         - **Gateways:** Pense criticamente. Onde estão as decisões? Use `exclusiveGateway` para decisões "SE/SENÃO" (ex: "Estoque disponível?") e `parallelGateway` para atividades que ocorrem ao mesmo tempo.
+         - **Fluxo:** Conecte TODOS os elementos com `sequenceFlow`. O diagrama deve ter um fluxo contínuo do início ao fim.
+         - **Lanes:** Organize o diagrama em `lanes` dentro de um `laneSet` para representar os diferentes atores (ex: Cliente, Portal, Sistema Zion, Operador de Armazém).
+       - **Visual (BPMNDiagram):** É OBRIGATÓRIO gerar a seção `<bpmndi:BPMNDiagram>` completa, com `<bpmndi:BPMNPlane>`, `<bpmndi:BPMNShape>` para cada elemento (com coordenadas em `<dc:Bounds>`) e `<bpmndi:BPMNEdge>` para cada `sequenceFlow` (com waypoints).
 
-    Retorne APENAS o objeto JSON completo.
+    **2. CHAVE: "specification_content" (Formato: objeto JSON)**
+       - **Nível de Detalhe:** Preencha TODAS as chaves a seguir com o máximo de detalhes extraídos da conversa. Respostas genéricas como "N/A", "A definir" ou descrições de uma linha são inaceitáveis. Inferir detalhes com base no contexto é parte da sua função como analista sênior.
+       - **Estrutura da Especificação:**
+         - **"system_name" (string):** O nome exato do sistema ou projeto.
+         - **"document_name" (string):** Um título formal para o documento (ex: "Especificação Funcional - Módulo de Agendamento").
+         - **"importance" (string):** Justifique a importância do projeto com base nos benefícios de negócio mencionados (ex: "Crucial para reduzir o tempo de processamento manual em 40% e eliminar erros de digitação, impactando diretamente a satisfação do cliente.").
+         - **"project_code" (string):** Use "A DEFINIR" apenas se for impossível inferir.
+         - **"document_objective" (string):** Descreva o objetivo do processo de negócio em um parágrafo detalhado, explicando o problema a ser resolvido e o estado futuro desejado.
+         - **"user_stories" (string):** Crie histórias de usuário detalhadas e em várias linhas, seguindo o formato "Como um [ATOR/PERFIL], eu quero [AÇÃO/FUNCIONALIDADE] para que [BENEFÍCIO/RESULTADO].". Gere pelo menos 3 histórias, cobrindo diferentes perspectivas.
+         - **"user_flow" (string):** Descreva a jornada completa do usuário em um parágrafo rico, detalhando cada passo e interação com o sistema.
+         - **"user_profiles" (string):** Liste os perfis de usuários ou sistemas envolvidos (atores), descrevendo brevemente a responsabilidade de cada um.
+         - **"prototype_link" (string):** Use "N/A" se não mencionado.
+         - **"functionalities" (array de objetos):** Esta é a seção mais crítica. Para CADA funcionalidade identificada, crie um objeto com a seguinte estrutura:
+           - **"title" (string):** Um nome claro e descritivo (ex: "Agendamento de Coleta com Validação de Estoque"). NUNCA use "Funcionalidade sem título".
+           - **"description" (string):** Uma descrição detalhada do que a funcionalidade faz, para quem e por quê.
+           - **"trigger" (string):** O que inicia esta funcionalidade? (ex: "Usuário clica no botão 'Agendar Coleta' na tela de consulta de estoque.").
+           - **"integrations" (string):** Com quais outros sistemas ou módulos esta funcionalidade se comunica? (ex: "Sistema Zion para consulta de estoque em tempo real via API REST.").
+           - **"screen_links" (string):** A quais telas ou componentes de interface esta funcionalidade está associada? (ex: "Tela de Agendamento (F01), Modal de Confirmação (M02)").
+           - **"fields" (string):** Quais campos de dados são relevantes? (ex: "ID do Cliente, SKU do Produto, Quantidade, Data Desejada, Endereço de Coleta").
+           - **"functional_requirements" (array de strings):** Liste os requisitos funcionais como regras claras e testáveis (ex: ["O sistema deve validar se a quantidade solicitada é menor ou igual ao estoque disponível.", "O sistema deve exibir um erro se a data de agendamento for anterior à data atual.", "Após a confirmação, o sistema deve enviar um e-mail de confirmação para o cliente."]).
+
+    **SAÍDA FINAL:**
+    Retorne APENAS o objeto JSON completo e bem formado, sem nenhum texto ou comentário adicional.
     """
 
     try:
         response = openai.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "Sua tarefa é gerar um objeto JSON contendo um XML de BPMN sintaticamente válido e uma Especificação Funcional detalhada. Ambas as partes são obrigatórias."},
+                {"role": "system", "content": "Você é um Analista de Negócios Sênior que gera documentação técnica (BPMN e EF) extremamente detalhada a partir de transcrições. Sua saída deve ser um único objeto JSON."},
                 {"role": "user", "content": prompt_master}
             ],
             response_format={"type": "json_object"},
