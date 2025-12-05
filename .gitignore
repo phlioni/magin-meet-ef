@@ -1,5 +1,5 @@
 # Ambiente Virtual
-
+.venv/
 venv/
 dist/
 
@@ -8,5 +8,5 @@ __pycache__/
 *.pyc
 
 # Arquivos de Configuração Secretos
-
+.env
 google_credentials.json
