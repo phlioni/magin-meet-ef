@@ -32,18 +32,19 @@ PASSO 3: COMO USAR A FERRAMENTA
 
 1.  **Preencha os Dados:** Antes ou durante a reunião, preencha o **Nome do Cliente** e adicione quaisquer **Documentos de Apoio** (editais, briefings, áudios, etc.) clicando em "Adicionar Docs".
 
-2.  **Inicie a Transcrição:** Clique em **"▶️ Iniciar Transcrição"**. Para garantir que a IA capture os pontos mais importantes, use a **"Técnica do Espelho"**: ouça o cliente e repita/resuma os pontos-chave em voz alta.
+2.  **Inicie a Transcrição:** 
+    * Selecione o microfone desejado na interface.
+    * Marque a opção **"Capturar Áudio do Sistema (Teams/Meet)"** se a reunião for online.
+    * Clique em **"▶️ Iniciar Transcrição"**. Para garantir que a IA capture os pontos mais importantes, use a **"Técnica do Espelho"**: ouça o cliente e repita/resuma os pontos-chave em voz alta.
 
 3.  **Gere os Artefatos (Ação Principal):** Quando a reunião terminar, pare a transcrição e clique no botão **"🚀 Gerar Análise e Artefatos"**. A IA irá processar a transcrição e os documentos.
 
 4.  **Explore e Refine os Resultados:**
-    * **Mapa Mental:**
-        * Vá para a aba **"Mapa Mental"**.
-        * À esquerda, você pode **editar o texto** em formato Markdown para refinar o mapa. As alterações aparecerão em tempo real no visualizador à direita.
-        * Use o botão **"Salvar HTML"** para exportar uma versão interativa do mapa.
+    * **BPMN:**
+        * Vá para a aba **"BPMN"** para visualizar e salvar o diagrama de processo.
     * **Especificação Funcional:**
         * Vá para a aba **"Especificação Funcional"**.
         * Revise o documento gerado pela IA.
-        * Use o botão **"Salvar Especificação (.txt)"** para guardar o arquivo.
+        * Use o botões para **"Salvar como TXT"** ou **"Salvar como Word"**.
 
 =====================================================

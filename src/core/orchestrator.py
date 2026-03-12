@@ -129,13 +129,35 @@ def generate_word_document(spec_content: dict):
             '00/00/0000': datetime.now().strftime("%d/%m/%Y"),
         }
 
+        # Função auxiliar para substituir texto mantendo formatação (runs)
+        def replace_text_in_paragraph(paragraph, key, value):
+            if key in paragraph.text:
+                # Se a chave for exatamente o texto completo do parágrafo ou de um run único
+                if len(paragraph.runs) == 1:
+                    paragraph.runs[0].text = paragraph.runs[0].text.replace(key, value)
+                else:
+                    # Método rudimentar mas seguro para runs divididos no meio de uma palavra:
+                    # Substitui o texto completo do parágrafo, zera todos os runs exceto o primeiro,
+                    # e coloca o novo texto no primeiro run. Isso preserva o estilo básico do parágrafo
+                    # mas perde estilos mistos dentro do mesmo parágrafo (o que é raro nos placeholders).
+                    
+                    # Tentativa de preservação mais cuidadosa:
+                    for i, run in enumerate(paragraph.runs):
+                        if key in run.text:
+                            run.text = run.text.replace(key, value)
+                            return
+                    
+                    # Fallback caso o placeholder esteja quebrado entre múltiplos runs
+                    full_text = paragraph.text
+                    new_text = full_text.replace(key, value)
+                    paragraph.runs[0].text = new_text
+                    for j in range(1, len(paragraph.runs)):
+                        paragraph.runs[j].text = ""
+
         # Substitui placeholders no corpo do documento
         for p in doc.paragraphs:
             for key, value in replacements.items():
-                if key in p.text:
-                     # Usar replace diretamente no texto do parágrafo é mais simples, 
-                     # mas pode ter implicações de estilo. Para este caso, deve funcionar.
-                    p.text = p.text.replace(key, value)
+                replace_text_in_paragraph(p, key, value)
 
         # Substitui placeholders nas tabelas
         for table in doc.tables:
@@ -143,8 +165,7 @@ def generate_word_document(spec_content: dict):
                 for cell in row.cells:
                     for p in cell.paragraphs:
                         for key, value in replacements.items():
-                            if key in p.text:
-                                p.text = p.text.replace(key, value)
+                            replace_text_in_paragraph(p, key, value)
 
         # Adiciona a seção de funcionalidades dinamicamente
         functionalities_list = spec_content.get('functionalities', [])

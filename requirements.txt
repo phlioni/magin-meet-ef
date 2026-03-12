@@ -3,6 +3,7 @@ openai
 python-dotenv
 google-cloud-speech
 sounddevice==0.4.6
+pyaudiowpatch
 numpy==1.26.4
 cffi==1.16.0
 pyinstaller
