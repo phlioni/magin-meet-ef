@@ -1,7 +1,12 @@
 # Ambiente Virtual
 .venv/
 venv/
+
+# Artefatos de build / distribuição
 dist/
+build/
+BusinessAnalystCopilot_Dist/
+*.spec
 
 # Arquivos de Cache Python
 __pycache__/
@@ -10,3 +15,8 @@ __pycache__/
 # Arquivos de Configuração Secretos
 .env
 google_credentials.json
+
+# Arquivos e pastas de IDE / ferramentas
+.vscode/
+.idea/
+.cursor/
