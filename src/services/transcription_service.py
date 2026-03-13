@@ -1,4 +1,6 @@
 # src/services/transcription_service.py
+# Estratégia: dois streams (mic via sounddevice + sistema via PyAudioWPatch WASAPI loopback)
+# com mixagem PCM em thread dedicada. Saída única 16 kHz mono para Google Speech-to-Text.
 
 import os
 import sys
@@ -22,6 +24,7 @@ GOOGLE_STREAM_LIMIT_SECONDS = 290
 
 
 def list_audio_devices():
+    """Lista dispositivos de entrada (microfones e Stereo Mix / Mixagem Estéreo)."""
     devices = []
     try:
         sd_devices = sd.query_devices()
@@ -30,19 +33,60 @@ def list_audio_devices():
                 name_lower = dev['name'].lower()
                 if 'mapeador' in name_lower or 'mapper' in name_lower:
                     continue
+                # Incluir Stereo Mix / Mixagem Estéreo (entrada que captura saída do sistema)
                 if 'output' in name_lower and 'stereo mix' not in name_lower and 'mixagem estéreo' not in name_lower:
                     continue
-                
+                is_loopback = 'stereo mix' in name_lower or 'mixagem estéreo' in name_lower
                 devices.append({
                     'index': i,
                     'name': dev['name'][:50],
-                    'is_loopback': False,
+                    'is_loopback': is_loopback,
                     'source': 'sounddevice',
                     'hostapi': dev.get('hostapi', -1),
                 })
     except Exception as e:
         print(f"Erro ao listar dispositivos sounddevice: {e}")
+    return devices
 
+
+def list_loopback_devices():
+    """Lista dispositivos WASAPI loopback (áudio do sistema) no Windows via PyAudioWPatch."""
+    devices = []
+    try:
+        import pyaudiowpatch as pyaudio
+        with pyaudio.PyAudio() as p:
+            wasapi_info = p.get_host_api_info_by_type(pyaudio.paWASAPI)
+            default_speakers = p.get_device_info_by_index(wasapi_info["defaultOutputDevice"])
+            if not default_speakers.get("isLoopbackDevice"):
+                for loopback in p.get_loopback_device_info_generator():
+                    if default_speakers["name"] in loopback["name"]:
+                        default_speakers = loopback
+                        break
+            if default_speakers.get("isLoopbackDevice"):
+                devices.append({
+                    'index': int(default_speakers["index"]),
+                    'name': default_speakers["name"][:50],
+                    'is_loopback': True,
+                    'source': 'pyaudiowpatch',
+                    'defaultSampleRate': int(default_speakers["defaultSampleRate"]),
+                    'maxInputChannels': int(default_speakers["maxInputChannels"]),
+                })
+            for loopback in p.get_loopback_device_info_generator():
+                idx = int(loopback["index"])
+                if any(d['index'] == idx for d in devices):
+                    continue
+                devices.append({
+                    'index': idx,
+                    'name': loopback["name"][:50],
+                    'is_loopback': True,
+                    'source': 'pyaudiowpatch',
+                    'defaultSampleRate': int(loopback["defaultSampleRate"]),
+                    'maxInputChannels': int(loopback["maxInputChannels"]),
+                })
+    except OSError:
+        pass  # WASAPI não disponível (ex.: não Windows)
+    except Exception as e:
+        print(f"Erro ao listar dispositivos loopback (PyAudioWPatch): {e}")
     return devices
 
 
@@ -58,9 +102,24 @@ class TranscriptionService:
         self.audio_stream = None
         self.final_transcripts = []
         self.mic_device_index = None
+        # Captura mic + sistema (dois streams + mixagem)
+        self.capture_system_audio = False
+        self.system_device_index = None
+        self._system_device_info = None  # dict com defaultSampleRate, maxInputChannels
+        self._mic_queue = None
+        self._system_queue = None
+        self._system_raw_queue = queue.Queue()
+        self._pyaudio_instance = None
+        self._system_stream = None
+        self._system_thread = None
+        self._mixer_thread = None
+        self._system_buffer = bytearray()
 
-    def set_audio_source(self, mic_device_index=None):
+    def set_audio_source(self, mic_device_index=None, system_device_index=None, capture_system_audio=False, system_device_info=None):
         self.mic_device_index = mic_device_index
+        self.system_device_index = system_device_index
+        self.capture_system_audio = bool(capture_system_audio)
+        self._system_device_info = system_device_info
 
     def _audio_generator(self):
         while self.is_running:
@@ -169,7 +228,18 @@ class TranscriptionService:
             self.is_running = False
 
     def _start_audio_streams(self):
-        print("🎤 Abrindo dispositivo de áudio...")
+        if self.capture_system_audio:
+            self._mic_queue = queue.Queue()
+            self._system_queue = queue.Queue()
+            self._system_buffer = bytearray()
+            self._start_system_loopback_stream()
+        use_mixer = self.capture_system_audio
+
+        if use_mixer:
+            self._mixer_thread = threading.Thread(target=self._run_mixer_thread, daemon=True)
+            self._mixer_thread.start()
+
+        print("🎤 Abrindo dispositivo de áudio (microfone)...")
         audio_kwargs = {
             'samplerate': SAMPLE_RATE,
             'blocksize': CHUNK_SIZE,
@@ -177,28 +247,149 @@ class TranscriptionService:
             'dtype': 'int16',
             'callback': self._audio_callback,
         }
-        
         try:
             if self.mic_device_index is not None:
                 audio_kwargs['device'] = self.mic_device_index
             self.audio_stream = sd.RawInputStream(**audio_kwargs)
             self.audio_stream.start()
-            print("✅ Dispositivo de áudio aberto.")
+            print("✅ Dispositivo de áudio (microfone) aberto.")
         except Exception as e:
             print(f"⚠️ Erro ao abrir dispositivo {self.mic_device_index}: {e}")
             print("🔄 Tentando usar o dispositivo padrão do sistema (Fallback)...")
             self.mic_device_index = None
             audio_kwargs.pop('device', None)
-                
             try:
                 self.audio_stream = sd.RawInputStream(**audio_kwargs)
                 self.audio_stream.start()
                 print("✅ Dispositivo de áudio padrão aberto com sucesso.")
             except Exception as default_e:
+                if use_mixer:
+                    self._stop_system_loopback_stream()
                 print(f"❌ Falha crítica ao abrir dispositivo: {default_e}")
                 raise default_e
 
+    def _start_system_loopback_stream(self):
+        """Abre stream WASAPI loopback (PyAudioWPatch) e thread que resampleia para 16 kHz mono."""
+        try:
+            import pyaudiowpatch as pyaudio
+            self._pyaudio_instance = pyaudio.PyAudio()
+            info = self._system_device_info
+            if not info:
+                wasapi_info = self._pyaudio_instance.get_host_api_info_by_type(pyaudio.paWASAPI)
+                default_speakers = self._pyaudio_instance.get_device_info_by_index(wasapi_info["defaultOutputDevice"])
+                if not default_speakers.get("isLoopbackDevice"):
+                    for loopback in self._pyaudio_instance.get_loopback_device_info_generator():
+                        if default_speakers["name"] in loopback["name"]:
+                            default_speakers = loopback
+                            break
+                info = {
+                    'index': int(default_speakers["index"]),
+                    'defaultSampleRate': int(default_speakers["defaultSampleRate"]),
+                    'maxInputChannels': int(default_speakers["maxInputChannels"]),
+                }
+            rate = info['defaultSampleRate']
+            channels = info['maxInputChannels']
+            device_index = self.system_device_index if self.system_device_index is not None else info['index']
+
+            def callback(in_data, frame_count, time_info, status):
+                if self.is_running and in_data:
+                    self._system_raw_queue.put((bytes(in_data), rate, channels))
+                return (in_data, pyaudio.paContinue)
+
+            self._system_stream = self._pyaudio_instance.open(
+                format=pyaudio.paInt16,
+                channels=channels,
+                rate=rate,
+                frames_per_buffer=1024,
+                input=True,
+                input_device_index=device_index,
+                stream_callback=callback,
+            )
+            self._system_stream.start_stream()
+            self._system_thread = threading.Thread(target=self._run_system_resample_thread, args=(rate, channels), daemon=True)
+            self._system_thread.start()
+            print("✅ Áudio do sistema (loopback) aberto.")
+        except Exception as e:
+            print(f"⚠️ Erro ao abrir áudio do sistema (loopback): {e}")
+            if self.on_error:
+                self.on_error(f"Áudio do sistema indisponível: {e}. Apenas microfone será usado.")
+            self.capture_system_audio = False
+
+    def _run_system_resample_thread(self, rate, channels):
+        """Lê do stream bruto, resampleia para 16 kHz mono, coloca em _system_queue."""
+        # Para 100 ms a 16 kHz: 1600 amostras. Em rate original: rate/100 amostras. Ex: 48k -> 4800 frames.
+        ratio = rate / SAMPLE_RATE  # ex: 3.0 para 48k -> 16k
+        frame_size = int(CHUNK_SIZE * ratio)  # amostras mono equivalentes
+        byte_per_frame = 2 * channels
+        need_bytes = frame_size * byte_per_frame
+        buf = bytearray()
+        while self.is_running:
+            try:
+                data, r, ch = self._system_raw_queue.get(timeout=0.2)
+                buf.extend(data)
+            except queue.Empty:
+                continue
+            while len(buf) >= need_bytes:
+                chunk = bytes(buf[:need_bytes])
+                del buf[:need_bytes]
+                arr = np.frombuffer(chunk, dtype=np.int16)
+                if ch == 2:
+                    arr = arr.reshape(-1, 2).mean(axis=1).astype(np.int16)
+                if r != SAMPLE_RATE:
+                    # Downsample: ex 48k -> 16k, ratio=3
+                    step = r / SAMPLE_RATE
+                    indices = (np.arange(CHUNK_SIZE) * step).astype(np.int64)
+                    arr = arr[indices]
+                self._system_queue.put(arr.tobytes())
+
+    def _run_mixer_thread(self):
+        """Combina chunks de microfone e sistema (com clipping) e coloca em _audio_buff."""
+        while self.is_running:
+            try:
+                mic_chunk = self._mic_queue.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            try:
+                system_chunk = self._system_queue.get_nowait()
+            except queue.Empty:
+                system_chunk = np.zeros(CHUNK_SIZE, dtype=np.int16).tobytes()
+            mic_arr = np.frombuffer(mic_chunk, dtype=np.int16)
+            sys_arr = np.frombuffer(system_chunk, dtype=np.int16)
+            if len(sys_arr) < CHUNK_SIZE:
+                sys_arr = np.pad(sys_arr, (0, CHUNK_SIZE - len(sys_arr)), constant_values=0)
+            mixed = np.clip(mic_arr.astype(np.int32) + sys_arr[:CHUNK_SIZE].astype(np.int32), -32768, 32767).astype(np.int16)
+            if self._audio_buff.qsize() > 10:
+                try:
+                    self._audio_buff.get_nowait()
+                except queue.Empty:
+                    pass
+            self._audio_buff.put(mixed.tobytes())
+            if self.on_audio_level:
+                try:
+                    rms = np.sqrt(np.mean(np.square(mixed.astype(np.float32)[::10])))
+                    self.on_audio_level(rms)
+                except Exception:
+                    pass
+
+    def _stop_system_loopback_stream(self):
+        if getattr(self, '_system_thread') and self._system_thread:
+            self._system_thread = None
+        if getattr(self, '_system_stream') and self._system_stream:
+            try:
+                self._system_stream.stop_stream()
+                self._system_stream.close()
+            except Exception:
+                pass
+            self._system_stream = None
+        if getattr(self, '_pyaudio_instance') and self._pyaudio_instance:
+            try:
+                self._pyaudio_instance.terminate()
+            except Exception:
+                pass
+            self._pyaudio_instance = None
+
     def _stop_audio_streams(self):
+        self._stop_system_loopback_stream()
         if hasattr(self, 'audio_stream') and self.audio_stream:
             try:
                 self.audio_stream.stop()
@@ -206,6 +397,8 @@ class TranscriptionService:
             except Exception:
                 pass
             self.audio_stream = None
+        self._mic_queue = None
+        self._system_queue = None
 
     def _run_single_stream(self):
         config = speech.RecognitionConfig(
@@ -236,17 +429,19 @@ class TranscriptionService:
             print(f"Status do áudio: {status}")
         if self.is_running:
             b_data = bytes(indata)
-            
-            if self._audio_buff.qsize() > 10:
-                try: self._audio_buff.get_nowait()
-                except queue.Empty: pass
-                
-            self._audio_buff.put(b_data)
-            
-            if self.on_audio_level:
-                try:
-                    audio_data = np.frombuffer(b_data, dtype=np.int16)
-                    rms = np.sqrt(np.mean(np.square(audio_data.astype(np.float32)[::10])))
-                    self.on_audio_level(rms)
-                except Exception:
-                    pass
+            if self.capture_system_audio and self._mic_queue is not None:
+                self._mic_queue.put(b_data)
+            else:
+                if self._audio_buff.qsize() > 10:
+                    try:
+                        self._audio_buff.get_nowait()
+                    except queue.Empty:
+                        pass
+                self._audio_buff.put(b_data)
+                if self.on_audio_level:
+                    try:
+                        audio_data = np.frombuffer(b_data, dtype=np.int16)
+                        rms = np.sqrt(np.mean(np.square(audio_data.astype(np.float32)[::10])))
+                        self.on_audio_level(rms)
+                    except Exception:
+                        pass

@@ -10,7 +10,7 @@ from tkinter import messagebox
 
 # A importação do orchestrator agora inclui a nova função
 from src.core.orchestrator import run_analysis_and_generate_artifacts, generate_specification_document, generate_word_document
-from src.services.transcription_service import TranscriptionService, list_audio_devices
+from src.services.transcription_service import TranscriptionService, list_audio_devices, list_loopback_devices
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -25,6 +25,7 @@ class App(ctk.CTk):
         self.current_spec_content = {} # Armazena os dados estruturados
         self.document_paths = []
         self.audio_devices = []
+        self.loopback_devices = []
 
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
@@ -84,10 +85,19 @@ class App(ctk.CTk):
         audio_frame = ctk.CTkFrame(sidebar_frame, fg_color="transparent")
         audio_frame.grid(row=5, column=0, padx=20, pady=10, sticky="ew")
         
-        ctk.CTkLabel(audio_frame, text="Entrada de Áudio:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(5, 5))
+        ctk.CTkLabel(audio_frame, text="Microfone:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(5, 5))
         self.audio_device_var = ctk.StringVar(value="Carregando...")
         self.audio_device_dropdown = ctk.CTkOptionMenu(audio_frame, variable=self.audio_device_var, values=["Carregando..."], dynamic_resizing=False, command=self.on_device_change, height=35, fg_color="#333333", button_color="#444444", button_hover_color="#555555")
-        self.audio_device_dropdown.pack(fill="x", pady=(0, 15))
+        self.audio_device_dropdown.pack(fill="x", pady=(0, 8))
+
+        self.capture_system_audio_var = ctk.BooleanVar(value=True)
+        self.capture_system_audio_checkbox = ctk.CTkCheckBox(audio_frame, text="Capturar áudio do sistema (Teams/Meet/Zoom)", variable=self.capture_system_audio_var, font=ctk.CTkFont(size=12))
+        self.capture_system_audio_checkbox.pack(anchor="w", pady=(0, 5))
+
+        ctk.CTkLabel(audio_frame, text="Áudio do sistema:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", pady=(8, 5))
+        self.system_audio_device_var = ctk.StringVar(value="Padrão (saída principal)")
+        self.system_audio_dropdown = ctk.CTkOptionMenu(audio_frame, variable=self.system_audio_device_var, values=["Padrão (saída principal)"], dynamic_resizing=False, height=32, fg_color="#333333", button_color="#444444", button_hover_color="#555555")
+        self.system_audio_dropdown.pack(fill="x", pady=(0, 15))
 
         # --- VU METER (TESTADOR DE VOLUME) ---
         vu_frame = ctk.CTkFrame(audio_frame, fg_color="#212124", corner_radius=8)
@@ -184,15 +194,19 @@ class App(ctk.CTk):
     def load_audio_devices(self):
         try:
             self.audio_devices = list_audio_devices()
-            mic_devices = [d for d in self.audio_devices if not d['is_loopback']]
-            
+            mic_devices = [d for d in self.audio_devices if not d.get('is_loopback')]
             if mic_devices:
                 device_names = [d['name'] for d in mic_devices]
                 self.audio_device_dropdown.configure(values=device_names)
-                
-                # Tenta selecionar um microfone padrão sensato
                 default_name = device_names[0]
                 self.audio_device_var.set(default_name)
+
+            self.loopback_devices = list_loopback_devices()
+            system_values = ["Padrão (saída principal)"]
+            if self.loopback_devices:
+                system_values.extend([d['name'] for d in self.loopback_devices])
+            self.system_audio_dropdown.configure(values=system_values)
+            self.system_audio_device_var.set(system_values[0])
         except Exception as e:
             self.log_error(f"Erro ao carregar dispositivos de áudio: {e}")
     def add_documents(self):
@@ -337,26 +351,54 @@ class App(ctk.CTk):
         self.transcription_textbox.see("end")
 
     def start_transcription(self):
-        # Encontra o ID do dispositivo de mic selecionado
         selected_mic_name = self.audio_device_var.get()
         mic_id = None
         for d in self.audio_devices:
             if d['name'] == selected_mic_name:
                 mic_id = d['index']
                 break
-                
-        self.transcription_service.set_audio_source(mic_device_index=mic_id)
+
+        capture_system = self.capture_system_audio_var.get()
+        system_id = None
+        system_info = None
+        if capture_system and self.loopback_devices:
+            selected_system = self.system_audio_device_var.get()
+            if selected_system != "Padrão (saída principal)":
+                for d in self.loopback_devices:
+                    if d['name'] == selected_system:
+                        system_id = d['index']
+                        system_info = {
+                            'index': d['index'],
+                            'defaultSampleRate': d['defaultSampleRate'],
+                            'maxInputChannels': d['maxInputChannels'],
+                        }
+                        break
+            # Para "Padrão", system_id e system_info ficam None; o serviço usa o dispositivo WASAPI padrão
+
+        self.transcription_service.set_audio_source(
+            mic_device_index=mic_id,
+            system_device_index=system_id,
+            capture_system_audio=capture_system,
+            system_device_info=system_info if capture_system else None,
+        )
         self.transcription_service.start_streaming()
         self.transcription_start_button.configure(state="disabled")
         self.transcription_stop_button.configure(state="normal")
         self.audio_device_dropdown.configure(state="disabled")
-        self.log_progress("🎤 Captura de áudio & Reunião iniciada...")
+        self.capture_system_audio_checkbox.configure(state="disabled")
+        self.system_audio_dropdown.configure(state="disabled")
+        if capture_system:
+            self.log_progress("🎤 Captura de microfone + áudio do sistema iniciada...")
+        else:
+            self.log_progress("🎤 Captura de áudio (microfone) iniciada...")
 
     def stop_transcription(self):
         self.transcription_service.stop_streaming()
         self.transcription_start_button.configure(state="normal")
         self.transcription_stop_button.configure(state="disabled")
         self.audio_device_dropdown.configure(state="normal")
+        self.capture_system_audio_checkbox.configure(state="normal")
+        self.system_audio_dropdown.configure(state="normal")
         self.vu_meter.set(0)
         self.log_progress("🛑 Captura de áudio parada.")
         
